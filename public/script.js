@@ -1,6 +1,6 @@
 const canvas = document.querySelector('#canvas')
 const ctx = canvas.getContext('2d')
-let socket = new WebSocket('ws://localhost:8080/ws')
+let socket = new WebSocket(`ws://${window.location.host}/ws`)
 
 let width, height, x, y, id
 let hasInitialized = false

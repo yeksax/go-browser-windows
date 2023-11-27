@@ -14,6 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var app *gin.Engine
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 	ReadBufferSize:  1024,
@@ -312,14 +314,14 @@ func UpdatePolygon() {
 }
 
 func main() {
-	r := gin.Default()
+	app = gin.Default()
 
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"*"} // Substitua pelo seu domínio Svelte
 
-	r.Use(cors.New(config))
+	app.Use(cors.New(config))
 
-	r.GET("/ws", func(c *gin.Context) {
+	app.GET("/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			log.Print("upgrade:", err)
@@ -364,11 +366,11 @@ func main() {
 		}
 	})
 
-	r.Use(static.Serve("/", static.LocalFile("public", false)))
+	app.Use(static.Serve("/", static.LocalFile("public", false)))
 
 	go Simulate()
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	app.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
 func NewBall(conn *websocket.Conn, event BallEvent) {
@@ -450,3 +452,8 @@ func remove(windows []Window, s int) []Window {
 func removeLines(lines []Line, s int) []Line {
 	return append(lines[:s], lines[s+1:]...)
 }
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+  app.ServeHTTP(w, r)
+}
+
