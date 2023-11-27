@@ -262,7 +262,6 @@ func UpdatePolygon() {
 			continue
 		}
 
-
 		polygon = MergePolygons(polygon, WindowToPolygon(*client.window))
 	}
 
@@ -344,7 +343,7 @@ func main() {
 			json.Unmarshal([]byte(message), &ballEvent)
 
 			if err != nil {
-        delete(clients, event.Data.ID)
+				delete(clients, event.Data.ID)
 				return
 			}
 
@@ -434,10 +433,10 @@ func EmitBalls() {
 
 func Emit(event Event) {
 	for _, client := range clients {
-    err := client.conn.WriteJSON(event)
-    if err != nil {
-      delete(clients, client.id)
-    }
+		err := client.conn.WriteJSON(event)
+		if err != nil {
+			delete(clients, client.id)
+		}
 	}
 }
 
