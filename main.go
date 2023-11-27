@@ -172,22 +172,22 @@ func CollisionBallLine(ball *Ball, line Line) {
 	dist := math.Sqrt(math.Pow(Point.X-ball.Position.X, 2) + math.Pow(Point.Y-ball.Position.Y, 2))
 
 	if dist < ball.Radius {
-    overlap := ball.Radius - dist
+		overlap := ball.Radius - dist
 
-    radians := math.Atan2(Point.Y-ball.Position.Y, Point.X-ball.Position.X)
+		radians := math.Atan2(Point.Y-ball.Position.Y, Point.X-ball.Position.X)
 
-    ball.Position.X -= math.Cos(radians) * overlap
-    ball.Position.Y -= math.Sin(radians) * overlap
+		ball.Position.X -= math.Cos(radians) * overlap
+		ball.Position.Y -= math.Sin(radians) * overlap
 
-    radians = math.Atan2(Point.Y-ball.Position.Y, Point.X-ball.Position.X)
+		radians = math.Atan2(Point.Y-ball.Position.Y, Point.X-ball.Position.X)
 
-    angle := math.Round(math.Abs(radians * 180 / math.Pi))
+		angle := math.Round(math.Abs(radians * 180 / math.Pi))
 
-    if angle == 90 || angle == 270 {
-      ball.Velocity.Y *= -1
-    } else {
-      ball.Velocity.X *= -1
-    }
+		if angle == 90 || angle == 270 {
+			ball.Velocity.Y *= -1
+		} else {
+			ball.Velocity.X *= -1
+		}
 	}
 }
 
@@ -196,8 +196,8 @@ func CollisionBallBall(ball1, ball2 *Ball) {
 	angle := math.Atan2(ball1.Position.Y-ball2.Position.Y, ball1.Position.X-ball2.Position.X)
 
 	overlap := ball1.Radius + ball2.Radius - distance
-  impulse := math.Sqrt(math.Pow(ball1.Velocity.X, 2) + math.Pow(ball1.Velocity.Y, 2))
-  impulse2 := math.Sqrt(math.Pow(ball2.Velocity.X, 2) + math.Pow(ball2.Velocity.Y, 2))
+	impulse := math.Sqrt(math.Pow(ball1.Velocity.X, 2) + math.Pow(ball1.Velocity.Y, 2))
+	impulse2 := math.Sqrt(math.Pow(ball2.Velocity.X, 2) + math.Pow(ball2.Velocity.Y, 2))
 
 	if overlap > 0 {
 		ball1.Position.X = ball1.Position.X + math.Cos(angle)*(overlap/2)
@@ -226,8 +226,8 @@ func Simulate() {
 			for i, ball := range balls {
 				// gravity
 				ball.Velocity.Y += 2 * dt
-        ball.Velocity.X *= 0.999
-        ball.Velocity.Y *= 0.999
+				ball.Velocity.X *= 0.999
+				ball.Velocity.Y *= 0.999
 
 				ball.Position.X += ball.Velocity.X * dt
 				ball.Position.Y += ball.Velocity.Y * dt
@@ -257,9 +257,11 @@ func UpdatePolygon() {
 	polygon = Polygon{}
 
 	for _, client := range clients {
+
 		if client.window == nil {
 			continue
 		}
+
 
 		polygon = MergePolygons(polygon, WindowToPolygon(*client.window))
 	}
@@ -332,11 +334,7 @@ func main() {
 		defer conn.Close()
 
 		for {
-			messageType, p, err := conn.ReadMessage()
-			if err != nil {
-				log.Println(err)
-				return
-			}
+			_, p, err := conn.ReadMessage()
 
 			var event Event
 			var ballEvent BallEvent
@@ -346,8 +344,8 @@ func main() {
 			json.Unmarshal([]byte(message), &ballEvent)
 
 			if err != nil {
-				conn.WriteMessage(messageType, []byte("Invalid JSON"))
-				log.Println(err)
+        delete(clients, event.Data.ID)
+				return
 			}
 
 			switch event.Type {
@@ -436,7 +434,10 @@ func EmitBalls() {
 
 func Emit(event Event) {
 	for _, client := range clients {
-		client.conn.WriteJSON(event)
+    err := client.conn.WriteJSON(event)
+    if err != nil {
+      delete(clients, client.id)
+    }
 	}
 }
 
@@ -454,6 +455,5 @@ func removeLines(lines []Line, s int) []Line {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-  app.ServeHTTP(w, r)
+	app.ServeHTTP(w, r)
 }
-

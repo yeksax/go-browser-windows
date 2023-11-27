@@ -1,6 +1,8 @@
 const canvas = document.querySelector('#canvas')
 const ctx = canvas.getContext('2d')
-let socket = new WebSocket(`ws://${window.location.host}/ws`)
+const websocketURL = `ws://${window.location.host}/ws`
+
+let socket = new WebSocket(websocketURL)
 
 let width, height, x, y, id
 let hasInitialized = false
@@ -15,11 +17,7 @@ setInterval(() => {
 
   let tmp2 = [width, height, x, y]
 
-  for (let i = 0; i < tmp1.length; i++) {
-    if (tmp1[i] !== tmp2[i]) {
-      hasChanged = true
-    }
-  }
+  hasChanged = tmp1[0] !== tmp2[0] || tmp1[1] !== tmp2[1] || tmp1[2] !== tmp2[2] || tmp1[3] !== tmp2[3]
 
   if (hasChanged) {
     notifyServer()
@@ -36,7 +34,7 @@ window.addEventListener('beforeunload', () => {
 })
 
 socket.addEventListener('close', () => {
-  socket = new WebSocket('ws://localhost:8080/ws')
+  socket = new WebSocket(websocketURL)
   hasInitialized = false
 })
 
@@ -49,6 +47,10 @@ socket.addEventListener('message', (event) => {
   if (type === "new-window") {
     if (!id) {
       id = data.id
+      hasInitialized = true
+
+      notifyServer()
+      draw()
     }
   }
 
@@ -62,20 +64,6 @@ socket.addEventListener('message', (event) => {
   }
 })
 
-
-function updateValues() {
-  width = window.innerWidth
-  height = window.innerHeight
-  x = window.screenLeft
-  y = window.screenTop
-
-  if (!hasInitialized) {
-    createWindow()
-    draw()
-    hasInitialized = true
-  }
-}
-
 function createWindow() {
   socket.send(JSON.stringify({
     type: "new-window",
@@ -86,6 +74,21 @@ function createWindow() {
       y
     }
   }))
+}
+
+function updateValues() {
+  width = window.innerWidth
+  height = window.innerHeight
+  x = window.screenLeft
+  y = window.screenTop
+
+  if (socket.readyState !== 1)
+    return
+
+
+  if (!hasInitialized) {
+    createWindow()
+  }
 }
 
 function notifyServer() {
@@ -109,6 +112,7 @@ function draw() {
   ctx.fillRect(0, 0, width, height)
 
   ctx.strokeStyle = 'white'
+  ctx.fillStyle = 'white'
   for (let i = 0; i < lines.length; i++) {
     ctx.beginPath()
     ctx.moveTo(lines[i].from.x * .1, lines[i].from.y * .1)
@@ -119,16 +123,7 @@ function draw() {
 
   for (let i = 0; i < balls.length; i++) {
     ctx.beginPath()
-    ctx.fillStyle = balls[i].color
     ctx.arc(balls[i].position.x - x, balls[i].position.y - y, balls[i].radius, 0, 2 * Math.PI)
-    ctx.fill()
-    ctx.closePath()
-  }
-
-  for (let i = 0; i < balls.length; i++) {
-    ctx.beginPath()
-    ctx.fillStyle = balls[i].color
-    ctx.arc(balls[i].position.x * .1, balls[i].position.y * .1, balls[i].radius * .1, 0, 2 * Math.PI)
     ctx.fill()
     ctx.closePath()
   }
@@ -153,3 +148,14 @@ document.addEventListener('click', (event) => {
     }
   }))
 })
+
+function hslToHex(h, s, l) {
+  l /= 100
+  const a = s * Math.min(l, 1 - l) / 100
+  const f = n => {
+    const k = (n + h / 30) % 12
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
